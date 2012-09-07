@@ -1,0 +1,44 @@
+##################################################################
+
+#   Product:   Jacket SDK
+#   Copyright (c) AccelerEyes LLC. All rights reserved.
+#   See http://www.accelereyes.com/eula for details.
+
+#   This software is distributed WITHOUT ANY WARRANTY; without even 
+#   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+#   PURPOSE.  See the above copyright notices for more information.
+
+##################################################################
+
+CUDADIR ?= /usr/local/cuda
+MATLAB ?= /usr/local/MATLAB/R2011a
+JKT ?= /usr/local/jacket/
+
+ENGINE ?= $(JKT)/engine
+NVCC ?= $(CUDADIR)/bin/nvcc
+NVMEX ?= $(JKT)/sdk/common/nvmex -f $(JKT)/sdk/common/nvopts.sh
+
+ifeq ($(shell uname -m), x86_64)
+  OS = 64
+else
+  CFLAGS = -DMX_COMPAT_32
+endif
+
+LIBPATH ?= $(ENGINE)
+CUDALIB = -L$(LIBPATH) -lkudart -Wl,-rpath,$(LIBPATH)
+CUDAINC = -I$(CUDADIR)/include
+
+MEXT = $(shell $(MATLAB)/bin/mexext)
+MINC = -I$(MATLAB)/extern/include
+
+JKTLIB = -L$(ENGINE) -ljacketSDK -ljacketDLA -laf
+JKTINC = -I$(ENGINE)/include/
+
+CFLAGS += $(MINC) $(CUDAINC) $(JKTINC) -Xcompiler -fPIC
+
+# compile for both Fermi and Tesla
+#PTX_SINGLE = -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_20
+PTX_DOUBLE = -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20
+
+# uncomment PTX_DOUBLE if you are a master NINJA
+PTXFLAGS = $(PTX_SINGLE)  $(PTX_DOUBLE)

@@ -1,0 +1,22 @@
+#include "jacketSDK.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_functions.h"
+#include <iostream>
+
+#define TPB 128
+
+
+
+err_t jktFunction(int nlhs,mxArray * plhs[],int nrhs,mxArray * prhs[]){
+
+  if(nrhs!=10)
+    return err("Usage: pc_D3Q15_PE_Reg(fIn,fEq,rho,ux,uy,uz,PE_nl,rho_out,numOUT,nnodes)");
+
+
+
+
+
+ return errNone;
+
+}

@@ -1,0 +1,10 @@
+include ../common/Makefile.common
+
+mymex.$(MEXT): mymex.o
+	env MATLAB=$(MATLAB) $(NVMEX) mymex.o $(JKTLIB) $(CUDALIB) -cxx -largeArrayDims
+
+mymex.o:  mymex.cu
+	$(NVCC) -o mymex.o -c mymex.cu $(CFLAGS) $(PTXFLAGS)
+
+clean:
+	rm -f *.$(MEXT) *.o

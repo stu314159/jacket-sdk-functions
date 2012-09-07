@@ -1,0 +1,45 @@
+#include "jacketSDK.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_functions.h"
+
+#define TPB 128
+
+
+
+err_t jktFunction(int nlhs, mxArray * plhs[], int nrhs, mxArray * prhs[]){
+
+
+  if(nrhs!=10)
+    return err("Usage: velocity_BC3D(fIn,bc_nl,ux_p,uy_p,uz_p,ex,ey,ez,w,numBC)");
+
+  mxArray * m_fIn = prhs[0];
+  mxArray * m_bc_nl = prhs[1];
+  mxArray * m_ux_p = prhs[2];
+  mxArray * m_uy_p = prhs[3];
+  mxArray * m_uz_p = prhs[4];
+  mxArray * m_ex = prhs[5];
+  mxArray * m_ey = prhs[6];
+  mxArray * m_ez = prhs[7];
+  mxArray * m_w = prhs[8];
+  int numBC = mxGetScalar(prhs[9]);
+
+  const mwSize * dims;
+  int stat = jkt_dims(m_fIn,&dims);
+
+  int nnodes = dims[0];
+  int numSpd = dims[1];
+
+  //get pointers to device data
+  float * fIn; jkt_mem((void**)&fIn,m_fIn);
+  int * bc_nl; jkt_mem((void**)&bc_nl,m_bc_nl);
+  float * ux_p; jkt_mem((void**)&ux_p,m_ux_p);
+  float * uy_p; jkt_mem((void**)&uy_p,m_uy_p);
+  float * uz_p; jkt_mem((void**)&uz_p,m_uz_p);
+  float * ex; jkt_mem((void**)&ex,m_ex);
+  float * ey; jkt_mem((void**)&ey,m_ey);
+  float * ez; jkt_mem((void**)&ez,m_ez);
+  float * w; fkt_mem((void**)&w,m_w);
+
+  return errNone;
+}

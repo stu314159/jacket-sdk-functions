@@ -1,0 +1,50 @@
+#include "jacketSDK.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_functions.h"
+#include <iostream>
+
+#define TPB 96
+
+
+__global__ void D2Q9_SNL_VNL_MRT_ts(float * fOut, float * fIn, const int * snl,
+				    const int * vnl, const float * ux_p,
+				    const float * uy_p, float * omega_op,
+				    int Nx, int Ny){
+int tid = threadIdx.x+blockIdx.x*blockDim.x;
+  int nnodes = Nx*Ny;
+  if(tid<nnodes){
+    float fi1,fi2,fi3,fi4,fi5,fi6,fi7,fi8,fi9;
+    float fe1,fe2,fe3,fe4,fe5,fe6,fe7,fe8,fe9;
+    float fo1,fo2,fo3,fo4,fo5,fo6,fo7,fo8,fo9;
+
+    __shared__ float omega[9][9]; 
+
+    //get the density data for the lattice point.
+    fi1=fIn[tid];
+    fi2=fIn[nnodes+tid];
+    fi3=fIn[2*nnodes+tid];
+    fi4=fIn[3*nnodes+tid];
+    fi5=fIn[4*nnodes+tid];
+    fi6=fIn[5*nnodes+tid];
+    fi7=fIn[6*nnodes+tid];
+    fi8=fIn[7*nnodes+tid];
+    fi9=fIn[8*nnodes+tid];
+
+    //load portion of omega into shared memory
+    if(threadIdx.x<81){
+      int col=threadIdx.x/9;
+      int row = threadIdx.x-col*9;
+
+      omega[row][col]=*(omega_op+9*col+row);
+
+    }
+
+
+
+
+
+
+  }
+
+}

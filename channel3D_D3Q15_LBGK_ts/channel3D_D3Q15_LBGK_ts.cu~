@@ -1,0 +1,56 @@
+#include "jacketSDK.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_functions.h"
+#include <iostream>
+
+#define TPB 16
+
+err_t jktFunction(int nlhs,mxArray * plhs[], int nrhs, mxArray * prhs[]){
+
+  if(nrhs!=11)
+    return err("Usage: channel3D_D3Q15_LBGK_ts(fOut,fIn,snl,inl,onl,uz_bc_in,uz_bc_out,omega,Nx,Ny,Nz)");
+
+
+  mxArray * m_fIn = prhs[0];
+  mxArray * m_fOut=prhs[1];
+  mxArray * m_snl=prhs[2];
+  mxArray * m_inl=prhs[3];
+  mxArray * m_onl=prhs[4];
+  mxArray * m_uz_bc_in=prhs[5];
+  mxArray * m_uz_bc_out=prhs[6];
+  float omega = mxGetScalar(prhs[7]);
+  int Nx = mxGetScalar(prhs[8]);
+  int Ny = mxGetScalar(prhs[9]);
+  int Nz = mxGetScalar(prhs[10]);
+
+ 
+
+  float * fOut_d;
+  float * fIn_d;
+  int * snl_d;
+  int * inl_d;
+  int * onl_d;
+  float * uz_bc_in;
+  float * uz_bc_out;
+
+  jkt_mem((void**)&fOut_d,m_fOut);
+  jkt_mem((void**)&fIn_d,m_fIn);
+  jkt_mem((void**)&snl_d,m_snl);
+  jkt_mem((void**)&inl_d,m_inl);
+  jkt_mem((void**)&onl_d,m_onl);
+  jkt_mem((void**)&uz_bc_in,m_uz_bc_in);
+  jkt_mem((void**)&uz_bc_out,m_uz_bc_out);
+  
+
+ 
+
+  dim3 BLOCKS(TPB,TPB,1);
+  dim3 GRIDS((Nx+TPB-1)/TPB,(Ny+TPB-1)/TPB,Nz);
+
+  ldc_D3Q15_LBGK_ts<<<GRIDS,BLOCKS>>>(fOut_d,fIn_d,U_d,u_bc,omega,Nx,Ny,Nz);
+
+
+  return errNone;
+
+}

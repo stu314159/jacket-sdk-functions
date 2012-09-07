@@ -1,0 +1,136 @@
+#include "jacketSDK.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "device_functions.h"
+#include <iostream>
+
+#define TPB 96
+
+__global__ void D2Q9_RegVs_SNL_MB_LBGK_ts(float * fOut,const float *fIn,
+					  const int * vnl,
+					  const int * snl,const int * mbnl,
+					  const float * ux_p, 
+					  const float * uy_p,
+					  const float nu, const int Nx,
+					  const int Ny){
+  int tid = threadIdx.x+blockIdx.x*blockDim.x;
+  int nnodes = Nx*Ny;
+  if(tid<nnodes){
+    float fi1,fi2,fi3,fi4,fi5,fi6,fi7,fi8,fi9;
+    float fe1,fe2,fe3,fe4,fe5,fe6,fe7,fe8,fe9;
+    float fo1,fo2,fo3,fo4,fo5,fo6,fo7,fo8,fo9;
+
+    //get the density data for the lattice point.
+    fi1=fIn[tid];
+    fi2=fIn[nnodes+tid];
+    fi3=fIn[2*nnodes+tid];
+    fi4=fIn[3*nnodes+tid];
+    fi5=fIn[4*nnodes+tid];
+    fi6=fIn[5*nnodes+tid];
+    fi7=fIn[6*nnodes+tid];
+    fi8=fIn[7*nnodes+tid];
+    fi9=fIn[8*nnodes+tid];
+
+    //compute rho
+    float rho = fi1+fi2+fi3+fi4+fi5+fi6+fi7+fi8+fi9;
+    float w, cu;
+    //compute velocity
+    float ux = (1/rho)*(fi2+fi6+fi9 - (fi7+fi4+fi8));
+    float uy = (1/rho)*(fi6+fi3+fi7 - (fi8+fi5+fi9));
+
+    if(mbnl[tid]==1){
+      //moving boundary
+      float dx=ux_p[tid]-ux;
+      float dy = uy_p[tid]-uy;
+     
+      //speed 2
+      w=1./9.;
+      cu = 3.*(dx);
+      fi2+=w*rho*cu;
+
+      //speed 3
+      cu=3.*dy;
+      fi3+=w*rho*cu;
+
+      //speed 4
+      cu=3.*(-dx);
+      fi4+=w*rho*cu;
+
+      //speed 5
+      cu = 3.*(-dy);
+      fi5+=w*rho*cu;
+
+      //speed 6
+      w=1./36.;
+      cu=3.*(dx+dy);
+      fi6+=w*rho*cu;
+
+      //speed 7
+      cu=3.*(-dx+dy);
+      fi7+=w*rho*cu;
+
+      //speed 8
+      cu=3.*(-dx-dy);
+      fi8+=w*rho*cu;
+
+      //speed 9
+      cu=3.*(dx-dy);
+      fi9+=w*rho*cu;
+
+      //also, update macroscopic velocity...
+      ux +=dx;
+      uy+=dy;
+
+    }
+    if(vnl[tid]==1){
+      ux=0.;
+      uy=uy_p[tid]; 
+
+    }
+
+    
+
+  }
+}
+					  
+					  
+
+
+
+err_t jktFunction(int nlhs, mxArray * plhs[], int nrhs, mxArray * prhs[]){
+
+
+  if(nrhs!=10)
+    return err("Usage:D2Q9_RegVs_SNL_MB_LBGK_ts(fOut,fIn,vnl,snl,mbnl,ux_p,uy_p,nu,Nx,Ny");
+
+  mxArray * m_fOut = prhs[0];
+  mxArray * m_fIn = prhs[1];
+  mxArray * m_vnl = prhs[2];
+  mxArray * m_snl = prhs[3];
+  mxArray * m_mbnl = prhs[4];
+  mxArray * m_ux_p = prhs[5];
+  mxArray * m_uy_p = prhs[6];
+  float nu = mxGetScalar(prhs[7]);
+  int Nx = mxGetScalar(prhs[8]);
+  int Ny = mxGetScalar(prhs[9]);
+
+  float * fOut; float * fIn; int * snl; int * mbnl; int * vnl;
+  float * ux_p; float * uy_p;
+
+  jkt_mem((void**)&fOut,m_fOut);
+  jkt_mem((void**)&fIn,m_fIn);
+  jkt_mem((void**)&vnl,m_vnl);
+  jkt_mem((void**)&snl,m_snl);
+  jkt_mem((void**)&mbnl,m_mbnl);
+  jkt_mem((void**)&ux_p,m_ux_p);
+  jkt_mem((void**)&uy_p,m_uy_p);
+
+
+  dim3 BLOCKS(TPB,1,1);
+  dim3 GRIDS((nnodes+TPB-1)/TPB,1,1);
+  D2Q9_RegVs_SNL_MB_LBGK_ts<<<GRIDS,BLOCKS>>>(fOut,fIn,vnl,snl,mbnl,ux_p,uy_p,
+					      nu,Nx,Ny);
+
+  return errNone;
+
+}
